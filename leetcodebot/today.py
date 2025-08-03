@@ -41,7 +41,7 @@ def get_leetcode_daily_challenge() -> Dict[str, Any]:
         "operationName": "questionOfToday"
     }
 
-    response = requests.post(url, json=json_data)
+    response = requests.post(url, json=json_data, timeout=20)
 
     if response.status_code != 200:
         raise Exception("Failed to fetch data from LeetCode")

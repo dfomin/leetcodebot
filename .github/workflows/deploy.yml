@@ -41,6 +41,10 @@ jobs:
       run: |
         aws lambda update-function-code --function-name bot --zip-file fileb://function.zip
 
+    - name: Update Lambda timeout
+      run: |
+        aws lambda update-function-configuration --function-name bot --timeout 30
+
     - name: Update Lambda environment variables
       run: |
         # Retry mechanism with exponential backoff

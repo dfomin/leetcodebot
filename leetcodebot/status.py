@@ -36,7 +36,7 @@ def solved_today(username: str, title_slug: str) -> Tuple[bool, bool, Optional[s
         "variables": variables
     }
 
-    response = requests.post(url, json=json_data)
+    response = requests.post(url, json=json_data, timeout=20)
 
     if response.status_code != 200:
         raise Exception("Failed to fetch data from LeetCode")
