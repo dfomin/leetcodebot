@@ -41,10 +41,6 @@ jobs:
       run: |
         aws lambda update-function-code --function-name bot --zip-file fileb://function.zip
 
-    - name: Update Lambda timeout
-      run: |
-        aws lambda update-function-configuration --function-name bot --timeout 30
-
     - name: Update Lambda environment variables
       run: |
         # Retry mechanism with exponential backoff
@@ -52,7 +48,7 @@ jobs:
         RETRY_DELAY=5
         for ((i=1; i<=MAX_RETRIES; i++)); do
           echo "Attempt $i to update Lambda configuration..."
-          aws lambda update-function-configuration --function-name bot --environment "Variables={USERNAMES='${{ secrets.USERNAMES }}',TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}',AOC_TOKEN='${{ secrets.AOC_TOKEN }}',AOC_LEADERBOARD='${{ secrets.AOC_LEADERBOARD }}',AOC_USER_IDS='${{ secrets.AOC_USER_IDS }}'}" && break # Exit loop if successful
+          aws lambda update-function-configuration --function-name bot --timeout 30 --environment "Variables={USERNAMES='${{ secrets.USERNAMES }}',TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}',AOC_TOKEN='${{ secrets.AOC_TOKEN }}',AOC_LEADERBOARD='${{ secrets.AOC_LEADERBOARD }}',AOC_USER_IDS='${{ secrets.AOC_USER_IDS }}'}" && break # Exit loop if successful
 
           if [[ $i -lt MAX_RETRIES ]]; then
             echo "Update failed. Retrying in $RETRY_DELAY seconds..."
