@@ -89,6 +89,9 @@ async def send_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         for info in sorted_info:
             answer += f"{info[1]}"
 
+        if all(info[1].startswith("✅") for info in sorted_info):
+            answer += "\n\n🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉"
+
         await update.message.reply_text(answer, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
     except Exception as e:
         await update.message.reply_text(f"Error occurred\n{str(e)}", parse_mode=ParseMode.MARKDOWN)
