@@ -12,13 +12,19 @@ import requests
 usernames = [name.strip() for name in os.getenv("USERNAMES", default="").split(",")]
 
 
-def get_leetcode_user_rank(username: str) -> int:
+def get_leetcode_user_rank(username: str) -> tuple[int, int]:
     url = "https://leetcode.com/graphql"
     query = """
     query getUserProfile($username: String!) {
         matchedUser(username: $username) {
             profile {
               ranking
+            }
+            submitStats {
+              acSubmissionNum {
+                difficulty
+                count
+              }
             }
         }
     }
@@ -40,10 +46,11 @@ def get_leetcode_user_rank(username: str) -> int:
         raise Exception(f"Error fetching data for user {username}: {data["errors"]}")
 
     ranking = data["data"]["matchedUser"]["profile"]["ranking"]
+    solved = int(data["data"]["matchedUser"]["submitStats"]["acSubmissionNum"][0]["count"])
 
     if ranking is None:
-        return 1_000_000_000
-    return ranking
+        return 1_000_000_000, solved
+    return ranking, solved
 
 
 async def get_ranks_for_users(usernames: List[str]) -> Dict[str, str]:
@@ -64,9 +71,9 @@ async def get_ranks_for_users(usernames: List[str]) -> Dict[str, str]:
 
 async def send_rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_ranks = await get_ranks_for_users(usernames)
-    sorted_users = sorted(user_ranks.items(), key=lambda item: item[1])
-    answer = "```Standings\n"
-    for user in sorted_users:
-        answer += f"{user[0]}\t{user[1]}\n"
+    sorted_users = sorted(user_ranks.items(), key=lambda item: item[1][0])
+    answer = "```\n"
+    for user, (rank, solved) in sorted_users:
+        answer += f"{user[:12]:<12} {rank:>7} {solved:>4}\n"
     answer += "```"
     await update.message.reply_text(answer, parse_mode=ParseMode.MARKDOWN)
