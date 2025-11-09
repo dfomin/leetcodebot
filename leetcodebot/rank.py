@@ -73,7 +73,9 @@ async def send_rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_ranks = await get_ranks_for_users(usernames)
     sorted_users = sorted(user_ranks.items(), key=lambda item: item[1][0])
     answer = "```\n"
+    answer += f"{'User':<12} {'Rank':>7} {'Solved':>6}\n"
+    answer += "-" * 27 + "\n"
     for user, (rank, solved) in sorted_users:
-        answer += f"{user[:12]:<12} {rank:>7} {solved:>4}\n"
+        answer += f"{user[:12]:<12} {rank:>7} {solved:>6}\n"
     answer += "```"
     await update.message.reply_text(answer, parse_mode=ParseMode.MARKDOWN)
