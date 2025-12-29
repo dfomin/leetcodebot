@@ -1,4 +1,5 @@
 import os
+import time
 from typing import Tuple, Optional
 
 import requests
@@ -17,6 +18,14 @@ usernames = [name.strip() for name in os.getenv("USERNAMES", default="").split("
 
 def solved_today(username: str, title_slug: str) -> Tuple[bool, bool, Optional[str], Optional[str], Optional[str]]:
     url = "https://leetcode.com/graphql"
+    headers = {
+        # LeetCode sometimes cuts "empty" queries (Cloudflare / rate limit).
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Referer": "https://leetcode.com/",
+        "Origin": "https://leetcode.com",
+    }
     query = """
     query recentAcSubmissions($username: String!) {
         recentAcSubmissionList(username: $username, limit: 20) {
@@ -36,15 +45,34 @@ def solved_today(username: str, title_slug: str) -> Tuple[bool, bool, Optional[s
         "variables": variables
     }
 
-    response = requests.post(url, json=json_data, timeout=20)
+    response = None
+    last_exc: Exception | None = None
+    for attempt in range(6):
+        try:
+            # timeout: (connect, read). With retries it’s better to fail fast on "hung" requests.
+            response = requests.post(url, json=json_data, headers=headers, timeout=(1, 3))
+            # retry on typical transient statuses
+            if response.status_code in (429, 500, 502, 503, 504):
+                time.sleep(0.4 * (2 ** attempt))
+                continue
+            break
+        except (requests.Timeout, requests.RequestException) as e:
+            last_exc = e
+            time.sleep(0.4 * (2 ** attempt))
+
+    if response is None:
+        raise Exception(f"Failed to fetch data from LeetCode (network error: {type(last_exc).__name__})") from last_exc
 
     if response.status_code != 200:
         raise Exception("Failed to fetch data from LeetCode")
 
-    data = response.json()
+    try:
+        data = response.json()
+    except ValueError as e:
+        raise Exception("Failed to parse LeetCode response") from e
 
     if "errors" in data:
-        raise Exception(f"Error fetching data: {data["errors"]}")
+        raise Exception(f"Error fetching data: {data['errors']}")
 
     now_utc = datetime.now(timezone.utc)
     start_of_today_utc = datetime(now_utc.year, now_utc.month, now_utc.day, tzinfo=timezone.utc)
@@ -77,10 +105,11 @@ async def send_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 try:
                     another, solved, runtime, memory, submission_id = future.result()
                     if solved:
-                        link = f"https://leetcode.com/problems/{question["titleSlug"]}/submissions/{submission_id}/"
+                        link = f"https://leetcode.com/problems/{question['titleSlug']}/submissions/{submission_id}/"
                         answers[username] = f"✅\t{username}, [{runtime}, {memory}]({link})\n"
                     else:
-                        answers[username] = f"{"☑️" if another else "⬜️"}\t{username}\n"
+                        checkbox = "☑️" if another else "⬜️"
+                        answers[username] = f"{checkbox}\t{username}\n"
                 except Exception:
                     answers[username] = f"⛔️\t{username}\n"
 
