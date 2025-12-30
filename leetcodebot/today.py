@@ -61,7 +61,7 @@ async def send_today(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         daily_challenge = get_leetcode_daily_challenge()
         question = daily_challenge["question"]
         answer = ""
-        answer += f"*Title*: {question["title"]}\n"
+        answer += f"*Title*: {question["frontendQuestionId"]}. {question["title"]}\n"
         answer += f"*Difficulty*: `{question["difficulty"]}`\n"
         answer += f"*Link*: https://leetcode.com{daily_challenge["link"]}\n"
         answer += f"*Acceptance Rate*: {question["acRate"]:.2f}%\n"
