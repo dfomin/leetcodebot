@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler
@@ -45,25 +46,31 @@ async def process_update(event_body):
         await application.process_update(update)
 
 
-async def process_update_with_timeout(event_body):
-    """Process update with hard timeout, send error to Telegram if timeout."""
-    data = json.loads(event_body)
-    chat_id = data.get("message", {}).get("chat", {}).get("id")
+def run_async_update(event_body):
+    """Run async update processing in a new event loop (for thread executor)."""
+    asyncio.run(process_update(event_body))
 
-    try:
-        await asyncio.wait_for(process_update(event_body), timeout=HANDLER_TIMEOUT)
-    except asyncio.TimeoutError:
-        logger.error("Handler timed out")
-        if chat_id:
-            async with application:
-                await application.bot.send_message(chat_id, "Request timed out. Please try again.")
+
+async def send_timeout_message(chat_id):
+    """Send timeout message to user."""
+    async with application:
+        await application.bot.send_message(chat_id, "Request timed out. Please try again.")
 
 
 def lambda_handler(event, context):
     """Lambda function handler for processing Telegram updates."""
+    event_body = event.get("body")
+    data = json.loads(event_body)
+    chat_id = data.get("message", {}).get("chat", {}).get("id")
+
     try:
-        event_body = event.get("body")
-        asyncio.run(process_update_with_timeout(event_body))
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(run_async_update, event_body)
+            future.result(timeout=HANDLER_TIMEOUT)
+    except FuturesTimeoutError:
+        logger.error("Handler timed out")
+        if chat_id:
+            asyncio.run(send_timeout_message(chat_id))
     except Exception as e:
         logger.error(f"Error processing update: {e}")
     return {"statusCode": 200}
