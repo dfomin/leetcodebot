@@ -2,7 +2,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List
 
-import requests
+from curl_cffi import requests
 from telegram import Update
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
@@ -32,7 +32,7 @@ def get_leetcode_contest_rank(username: str) -> int:
         "Referer": "https://leetcode.com/",
         "Origin": "https://leetcode.com",
     }
-    response = requests.post(url, json=json_data, headers=headers, timeout=20)
+    response = requests.post(url, json=json_data, headers=headers, impersonate="chrome", timeout=20)
 
     if response.status_code != 200:
         raise Exception(f"Failed to fetch data for user {username}")
