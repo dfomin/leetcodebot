@@ -26,7 +26,13 @@ def get_leetcode_contest_rank(username: str) -> int:
         "query": query,
         "variables": variables
     }
-    response = requests.post(url, json=json_data, timeout=20)
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Content-Type": "application/json",
+        "Referer": "https://leetcode.com/",
+        "Origin": "https://leetcode.com",
+    }
+    response = requests.post(url, json=json_data, headers=headers, timeout=20)
 
     if response.status_code != 200:
         raise Exception(f"Failed to fetch data for user {username}")
