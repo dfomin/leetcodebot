@@ -47,18 +47,7 @@ def solved_today(username: str, title_slug: str) -> Tuple[bool, bool, Optional[s
 
     response = None
     last_exc: Exception | None = None
-    for attempt in range(4):
-        try:
-            # timeout: (connect, read). With retries it’s better to fail fast on "hung" requests.
-            response = requests.post(url, json=json_data, headers=headers, timeout=(1, 3))
-            # retry on typical transient statuses
-            if response.status_code in (429, 500, 502, 503, 504):
-                time.sleep(1 + (2 ** attempt))
-                continue
-            break
-        except (requests.Timeout, requests.RequestException) as e:
-            last_exc = e
-            time.sleep(1 + (2 ** attempt))
+    response = requests.post(url, json=json_data, headers=headers, timeout=20)
 
     if response is None:
         raise Exception(f"Failed to fetch data from LeetCode (network error: {type(last_exc).__name__})") from last_exc
