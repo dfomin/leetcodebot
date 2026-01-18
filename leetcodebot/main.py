@@ -35,6 +35,9 @@ def create_application() -> Application:
 application = create_application()
 
 
+HANDLER_TIMEOUT = 20  # seconds - leave buffer before Lambda's 30s timeout
+
+
 async def process_update(event_body):
     """Process a single update."""
     async with application:
@@ -42,11 +45,25 @@ async def process_update(event_body):
         await application.process_update(update)
 
 
+async def process_update_with_timeout(event_body):
+    """Process update with hard timeout, send error to Telegram if timeout."""
+    data = json.loads(event_body)
+    chat_id = data.get("message", {}).get("chat", {}).get("id")
+
+    try:
+        await asyncio.wait_for(process_update(event_body), timeout=HANDLER_TIMEOUT)
+    except asyncio.TimeoutError:
+        logger.error("Handler timed out")
+        if chat_id:
+            async with application:
+                await application.bot.send_message(chat_id, "Request timed out. Please try again.")
+
+
 def lambda_handler(event, context):
     """Lambda function handler for processing Telegram updates."""
     try:
         event_body = event.get("body")
-        asyncio.run(process_update(event_body))
+        asyncio.run(process_update_with_timeout(event_body))
     except Exception as e:
         logger.error(f"Error processing update: {e}")
     return {"statusCode": 200}

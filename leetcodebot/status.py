@@ -2,7 +2,6 @@ import os
 import time
 from typing import Tuple, Optional
 
-import cloudscraper
 import requests
 
 from datetime import datetime, timezone
@@ -12,8 +11,6 @@ from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
 
 from leetcodebot.today import get_leetcode_daily_challenge
-
-scraper = cloudscraper.create_scraper()
 
 
 usernames = [name.strip() for name in os.getenv("USERNAMES", default="").split(",")]
@@ -53,7 +50,7 @@ def solved_today(username: str, title_slug: str) -> Tuple[bool, bool, Optional[s
     for attempt in range(6):
         try:
             # timeout: (connect, read). With retries it’s better to fail fast on "hung" requests.
-            response = scraper.post(url, json=json_data, headers=headers, timeout=(1, 3))
+            response = requests.post(url, json=json_data, headers=headers, timeout=(1, 3))
             # retry on typical transient statuses
             if response.status_code in (429, 500, 502, 503, 504):
                 time.sleep(0.4 * (2 ** attempt))

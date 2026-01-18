@@ -4,9 +4,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
 
-import cloudscraper
-
-scraper = cloudscraper.create_scraper()
+import requests
 
 
 def get_leetcode_daily_challenge() -> Dict[str, Any]:
@@ -49,7 +47,7 @@ def get_leetcode_daily_challenge() -> Dict[str, Any]:
         "Origin": "https://leetcode.com",
     }
 
-    response = scraper.post(url, json=json_data, headers=headers, timeout=20)
+    response = requests.post(url, json=json_data, headers=headers, timeout=20)
 
     if response.status_code != 200:
         raise Exception("Failed to fetch data from LeetCode")
